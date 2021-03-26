@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
-using TodosStartup.Models;
+using System.Threading;
+using System.Threading.Tasks;
+using MediatR;
+using TodosStartup.Processes.Todos;
 
 namespace TodosStartup.Controllers
 {
@@ -9,42 +10,41 @@ namespace TodosStartup.Controllers
     [ApiController]
     public class TodosController : ControllerBase
     {
-        private static List<Todo> AllTodos = new List<Todo>
+        private readonly IMediator _mediator;
+
+        public TodosController(IMediator mediator)
         {
-            new Todo {Id = 1, Text = "test 111"},
-            new Todo {Id = 2, Text = "test 222"},
-            new Todo {Id = 3, Text = "test 333"},
-            new Todo {Id = 4, Text = "test 444", Completed = true},
-            new Todo {Id = 5, Text = "test 555"},
-        };
+            _mediator = mediator;
+        }
 
         [HttpGet]
-        public IActionResult GetAllTodos()
+        public async Task<IActionResult> GetUncompletedTodos([FromQuery] GetUncompletedTodosProcess.Request request, CancellationToken cancellationToken)
         {
-            var nonCompletedTodos = AllTodos.Where(t => !t.Completed);
-            return Ok(nonCompletedTodos);
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("completed")]
+        public async Task<IActionResult> GetCompletedTodos([FromQuery] GetCompletedTodosProcess.Request request, CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
         }
 
         [HttpPost]
-        public IActionResult AddTodo(Todo todo)
+        public async Task<IActionResult> AddTodo([FromBody] AddTodoProcess.Request request, CancellationToken cancellationToken)
         {
-            var maxId = AllTodos.Max(t => t.Id);
-            todo.Id = maxId + 1;
-
-            AllTodos.Add(todo);
-            return Ok();
+            var success = await _mediator.Send(request, cancellationToken);
+            if (success) return Ok();
+            return BadRequest();
         }
 
         [HttpPost("{id}/complete")]
-        public IActionResult CompleteTodo(int id)
+        public async Task<IActionResult> CompleteTodo([FromRoute] CompleteTodoProcess.Request request, CancellationToken cancellationToken)
         {
-            var todo = AllTodos.SingleOrDefault(t => t.Id == id);
-            if (todo != null)
-            {
-                todo.Completed = true;
-            }
-
-            return Ok();
+            var success = await _mediator.Send(request, cancellationToken);
+            if (success) return Ok();
+            return BadRequest();
         }
     }
 }

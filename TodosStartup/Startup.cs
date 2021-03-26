@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MediatR;
 using TodosStartup.Constants;
 using TodosStartup.Extensions;
 
@@ -28,6 +29,9 @@ namespace TodosStartup
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            services.AddMediatR(typeof(Startup));
+            services.AddAutoMapper(typeof(Startup));
 
             services.ConfigureCors();
         }
